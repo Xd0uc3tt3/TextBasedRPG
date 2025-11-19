@@ -10,6 +10,8 @@ namespace TextBasedRPG
     {
         static void Main(string[] args)
         {
+            Console.WriteLine("Hello, World!");
         }
     }
 }
+
