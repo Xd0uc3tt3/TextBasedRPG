@@ -1,10 +1,19 @@
 ﻿using System;
 using System.IO;
 
-namespace TextRPGMap
+namespace TextBasedRPG
 {
     class Program
     {
+        static int maxHealth = 100;
+        static int health = maxHealth;
+
+        static int maxShield = 100;
+        static int shield = maxShield;
+
+        static int lives = 3;
+        static bool isAlive = true;
+
         static void Main(string[] args)
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -23,6 +32,8 @@ namespace TextRPGMap
             {
                 Console.SetCursorPosition(0, 0);
                 PrintMapWithPlayer(map, playerRow, playerCol);
+                Console.WriteLine();
+                ShowHud();
 
                 ConsoleKeyInfo key = Console.ReadKey(true);
                 int newRow = playerRow;
@@ -92,6 +103,99 @@ namespace TextRPGMap
 
             Console.WriteLine("Use WASD to move. ESC to exit.");
         }
+
+        static void ShowHud()
+        {
+            string characterName = "Brutus Jr";
+
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.Write($"{characterName,-15}");
+
+            string healthStatus;
+            if (health >= 100)
+            {
+                healthStatus = "Perfect Health";
+            }
+            else if (health >= 90)
+            {
+                healthStatus = "Healthy";
+            }
+            else if (health >= 50)
+            {
+                healthStatus = "Hurt";
+            }
+            else if (health >= 10)
+            {
+                healthStatus = "Badly Hurt";
+            }
+            else
+            {
+                healthStatus = "Immediate Danger";
+            }
+
+            Console.ForegroundColor = ConsoleColor.DarkRed;
+            Console.Write($"{healthStatus,25}");
+
+
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.Write($"{("Health:" + health + "/" + maxHealth),20}");
+
+
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.Write($"{("Shield:" + shield + "/" + maxShield),20}");
+
+
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"{("Lives:" + lives),10}");
+            Console.ResetColor();
+        }
+
+        static void TakeDamage(int damageAmount)
+        {
+            if (shield > 0)
+            {
+                shield -= damageAmount;
+                if (shield < 0)
+                {
+                    health += shield;
+                    shield = 0;
+                }
+            }
+            else
+            {
+                health -= damageAmount;
+            }
+
+            if (health <= 0)
+                Revive();
+        }
+
+        static void Heal(int healAmount)
+        {
+            health += healAmount;
+            if (health > maxHealth) health = maxHealth;
+        }
+
+        static void RegenerateShield(int regenAmount)
+        {
+            shield += regenAmount;
+            if (shield > maxShield) shield = maxShield;
+        }
+
+        static void Revive()
+        {
+            if (lives > 0)
+            {
+                health = maxHealth;
+                shield = maxShield;
+                lives--;
+            }
+            else
+            {
+                isAlive = false;
+            }
+        }
+
     }
 }
 
