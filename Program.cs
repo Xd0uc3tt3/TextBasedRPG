@@ -5,6 +5,7 @@ namespace TextBasedRPG
 {
     class Program
     {
+        // Player stats
         static int maxHealth = 100;
         static int health = maxHealth;
 
@@ -23,18 +24,23 @@ namespace TextBasedRPG
 
         static void Main(string[] args)
         {
+            // Console setup
             Console.OutputEncoding = System.Text.Encoding.UTF8;
 
+            // Load map
             char[,] map = LoadMapFromFile("map.txt");
             int rows = map.GetLength(0);
             int cols = map.GetLength(1);
 
+            // Window and buffer size
             Console.SetWindowSize(Math.Min(cols + 2, 200), Math.Min(rows + 8, 50));
             Console.SetBufferSize(Math.Min(cols + 2, 200), Math.Min(rows + 8, 50));
 
+            // Player starting position
             int playerRow = 0;
             int playerCol = 11;
 
+            // Main game loop
             while (isAlive)
             {
                 // Clear previous messages
@@ -46,10 +52,10 @@ namespace TextBasedRPG
                 PrintMapWithPlayerAndEnemy(map, playerRow, playerCol);
                 ShowHud();
 
-                // Player attacks enemy if on the same tile
+                // Player attacks enemy
                 if (playerRow == enemyRow && playerCol == enemyCol && enemyHealth > 0)
                 {
-                    enemyHealth -= 10; // player deals 10 damage
+                    enemyHealth -= 10;
                     Console.SetCursorPosition(0, rows + 5);
                     Console.ForegroundColor = ConsoleColor.Yellow;
                     Console.WriteLine("You hit the enemy for 10 damage!");
@@ -64,10 +70,10 @@ namespace TextBasedRPG
                     }
                 }
 
-                // Enemy moves
+                // Enemy AI movement
                 MoveEnemy(map, rows, cols, playerRow, playerCol);
 
-                // Enemy damages player if on same tile
+                // Enemy attacks player
                 if (playerRow == enemyRow && playerCol == enemyCol && enemyHealth > 0)
                 {
                     Console.SetCursorPosition(0, rows + 6);
@@ -77,20 +83,21 @@ namespace TextBasedRPG
                     TakeDamage(5);
                 }
 
-                // Player movement
+                // Player movement input
                 ConsoleKeyInfo key = Console.ReadKey(true);
                 int newRow = playerRow;
                 int newCol = playerCol;
 
                 switch (key.Key)
                 {
-                    case ConsoleKey.W: newRow--; break;
-                    case ConsoleKey.S: newRow++; break;
-                    case ConsoleKey.A: newCol--; break;
-                    case ConsoleKey.D: newCol++; break;
-                    case ConsoleKey.Escape: return;
+                    case ConsoleKey.W: newRow--; break; // move up
+                    case ConsoleKey.S: newRow++; break; // move down
+                    case ConsoleKey.A: newCol--; break; // move left
+                    case ConsoleKey.D: newCol++; break; // move right
+                    case ConsoleKey.Escape: return;     // exit
                 }
 
+                // Check if move is valid
                 if (newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols)
                 {
                     char tile = map[newRow, newCol];
@@ -102,32 +109,49 @@ namespace TextBasedRPG
                 }
             }
 
+            // Game over
             Console.Clear();
             Console.WriteLine("Game Over!");
         }
 
+        // Clear a line in the console
         static void ClearMessageLine(int line)
         {
             Console.SetCursorPosition(0, line);
             Console.Write(new string(' ', 80)); // clear line with spaces
         }
 
+        // Enemy movement logic
         static void MoveEnemy(char[,] map, int rows, int cols, int playerRow, int playerCol)
         {
             if (enemyHealth <= 0) return;
 
-            int dir = rnd.Next(0, 4);
             int newRow = enemyRow;
             int newCol = enemyCol;
 
-            switch (dir)
+            // Determine behavior based on enemy health
+            bool chasePlayer = enemyHealth > enemyMaxHealth / 2; // chase if health > 50%
+
+            if (chasePlayer)
             {
-                case 0: newRow--; break;
-                case 1: newRow++; break;
-                case 2: newCol--; break;
-                case 3: newCol++; break;
+                // Move towards player
+                if (playerRow < enemyRow) newRow--;
+                else if (playerRow > enemyRow) newRow++;
+
+                if (playerCol < enemyCol) newCol--;
+                else if (playerCol > enemyCol) newCol++;
+            }
+            else
+            {
+                // Move away from player
+                if (playerRow < enemyRow) newRow++;
+                else if (playerRow > enemyRow) newRow--;
+
+                if (playerCol < enemyCol) newCol++;
+                else if (playerCol > enemyCol) newCol--;
             }
 
+            // Ensure new position is valid
             if (newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols)
             {
                 char tile = map[newRow, newCol];
@@ -136,9 +160,33 @@ namespace TextBasedRPG
                     enemyRow = newRow;
                     enemyCol = newCol;
                 }
+                else
+                {
+                    // Random move if blocked
+                    int dir = rnd.Next(0, 4);
+                    newRow = enemyRow;
+                    newCol = enemyCol;
+                    switch (dir)
+                    {
+                        case 0: newRow--; break;
+                        case 1: newRow++; break;
+                        case 2: newCol--; break;
+                        case 3: newCol++; break;
+                    }
+                    if (newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols)
+                    {
+                        tile = map[newRow, newCol];
+                        if (tile != '^' && tile != '~' && !(newRow == playerRow && newCol == playerCol))
+                        {
+                            enemyRow = newRow;
+                            enemyCol = newCol;
+                        }
+                    }
+                }
             }
         }
 
+        // Load map from file
         static char[,] LoadMapFromFile(string filePath)
         {
             string[] lines = File.ReadAllLines(filePath);
@@ -154,30 +202,34 @@ namespace TextBasedRPG
             return map;
         }
 
+        // Draw map with player and enemy
         static void PrintMapWithPlayerAndEnemy(char[,] map, int playerRow, int playerCol)
         {
             int rows = map.GetLength(0);
             int cols = map.GetLength(1);
 
+            // Draw top border
             Console.Write("+");
             for (int i = 0; i < cols; i++) Console.Write("-");
             Console.WriteLine("+");
 
+            // Draw map rows
             for (int r = 0; r < rows; r++)
             {
                 Console.Write("|");
                 for (int c = 0; c < cols; c++)
                 {
                     if (r == playerRow && c == playerCol)
-                        Console.Write("@");
+                        Console.Write("@"); // player
                     else if (r == enemyRow && c == enemyCol && enemyHealth > 0)
-                        Console.Write("E");
+                        Console.Write("E"); // enemy
                     else
-                        Console.Write(map[r, c]);
+                        Console.Write(map[r, c]); // map tile
                 }
                 Console.WriteLine("|");
             }
 
+            // Draw bottom border
             Console.Write("+");
             for (int i = 0; i < cols; i++) Console.Write("-");
             Console.WriteLine("+");
@@ -185,6 +237,7 @@ namespace TextBasedRPG
             Console.WriteLine("Use WASD to move. ESC to exit.");
         }
 
+        // Display player and enemy HUD
         static void ShowHud()
         {
             string characterName = "Brutus Jr";
@@ -222,6 +275,7 @@ namespace TextBasedRPG
             Console.ResetColor();
         }
 
+        // Apply damage to player
         static void TakeDamage(int damageAmount)
         {
             if (shield > 0)
@@ -242,18 +296,21 @@ namespace TextBasedRPG
                 Revive();
         }
 
+        // Heal player
         static void Heal(int healAmount)
         {
             health += healAmount;
             if (health > maxHealth) health = maxHealth;
         }
 
+        // Regenerate shield
         static void RegenerateShield(int regenAmount)
         {
             shield += regenAmount;
             if (shield > maxShield) shield = maxShield;
         }
 
+        // Revive player
         static void Revive()
         {
             if (lives > 0)
